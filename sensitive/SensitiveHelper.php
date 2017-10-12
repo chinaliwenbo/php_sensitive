@@ -113,14 +113,15 @@ class SensitiveHelper
      */
     public function getBadWord($content, $matchType = 1)
     {
+        $index = md5($content);
         //之前已经解析过了
-        if(!empty($this->badWordList[$content])){
-            return $this->badWordList[$content];
+        if(!empty($this->badWordList[$index])){
+            return $this->badWordList[$index];
         }
 
         //之前没有解析过，先解析
         $this->replace($content, $matchType);
-        return (array)$this->badWordList[$content];
+        return (array)$this->badWordList[$index];
     }
 
     /**
@@ -133,7 +134,7 @@ class SensitiveHelper
      */
     public function replace($content, $matchType = 1, $replace = '')
     {
-        $orginContent = $content;
+        $orginContent = md5($content);
         if (empty($content)) {
             throw new \Exception('请填写检测的内容');
         }
