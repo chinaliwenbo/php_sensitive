@@ -21,9 +21,8 @@ class Sensitive{
     public static $CACHE_TIME = 3600;
 
 
-    public static $_ACTION_GETWORD = 1;
-    public static $_ACTION_REPLACE = 2;
-    public static $_ACTION_ISLEGAL = 3;
+    public static $_ACTION_REPLACE = 1;
+    public static $_ACTION_ISLEGAL = 2;
 
     public static $instance = null;
 
@@ -45,7 +44,7 @@ class Sensitive{
      * @param int $matchType 匹配模式， 0-最长匹配 1-最短匹配
      * @throws Exception
      */
-    public static function filter($content, $type = 1, $replaceChar = '', $matchType = 0){
+    public static function filter($content, $type = 1, $replaceChar = '***', $matchType = 0){
         //初始化
         require_once __DIR__ . "/sensitive/SensitiveHelper.php";
         require_once __DIR__ . "/sensitive/HashMap.php";
@@ -59,23 +58,38 @@ class Sensitive{
 
         //进行操作
         switch ($type){
-            case 2: //直接替换敏感字符，返回替换后的字符串
-                return self::$instance->replace($content, $replaceChar , '', '', $matchType);
-            case 3: //查找是否包含有，返回bool
+            case 2: //查找是否包含有，返回bool
                 return self::$instance->islegal($content);
-            case 1: //查找出敏感字符，返回敏感字符数组
+            case 1: //替换敏感词，返回替换后的字符串
             default:
-                return self::$instance->getBadWord($content, $matchType);
+                return self::$instance->replace($content, $matchType, $replaceChar);
         }
+    }
+
+    /**
+     * 获取文本中的敏感词
+     */
+    public static function getBadWords($content, $matchType = 0){
+        //初始化
+        require_once __DIR__ . "/sensitive/SensitiveHelper.php";
+        require_once __DIR__ . "/sensitive/HashMap.php";
+        if(!(self::$instance instanceof SensitiveHelper)){
+            self::$instance = new SensitiveHelper();
+            //设置缓存文件和缓存时长
+            self::$instance->setCache(self::$CACHE_FILE, self::$CACHE_TIME);
+            //生成关键字查询索引
+            self::$instance->setTree();
+        }
+
+        return self::$instance->getBadWord($content, $matchType);
     }
 }
 
 /**
  * 基本调用方法示例
-    //获取内容中的所有敏感词， 返回查出来的敏感词数组
-    Sensitive::filter("这是一段电狗测资料泄试语句", Sensitive::$_ACTION_GETWORD);
-    //指定用'*'号替换内容中的敏感词 , 返回替换后的内容
-    Sensitive::filter("这是一段电狗测资料泄试语句", Sensitive::$_ACTION_REPLACE, '*');
+    //指定用'*'号替换内容中的敏感词 , 返回替换后的内容.  filter 后会存储敏感词数组，获取方法见最后
+    Sensitive::filter("这是一段电狗测资料泄试语句");
+ *
     //判断内容中是否包含有敏感词 ，返回bool类型
     Sensitive::filter("这是一段电狗测资料泄试语句", Sensitive::$_ACTION_ISLEGAL);
  *
@@ -87,4 +101,16 @@ class Sensitive{
  * 2、设置敏感词索引缓存位置和缓存时间, 可直接赋值, 如果设置缓存文件为空则不缓存
     Sensitive::$CACHE_TIME = 7200;
     Sensitive::$CACHE_FILE = '/www/xx.dat';
+ *
+ * 3、替换完字符串后获取检测到的敏感词数组如下,
+ *  先替换效率更高， 因为敏感词已经缓存.
+ *  Sensitive::filter("这是一段电狗测资料泄试语句"); //替换字符串
+ *  Sensitive::getBadWords("这是一段电狗测资料泄试语句"); //获取检测到的敏感字符
  */
+
+//  var_dump(Sensitive::filter("这是一段电狗测资料泄试语句")); //替换字符串
+//  var_dump(Sensitive::getBadWords("这是一段电狗测资料泄试语句")); //获取检测到的敏感字符
+
+
+//   var_dump(Sensitive::filter("这是一段电狗测资料")); //替换字符串
+//   var_dump(Sensitive::getBadWords("这是一段电狗测资料")); //获取检测到的敏感字符
