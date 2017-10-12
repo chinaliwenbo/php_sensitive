@@ -43,11 +43,8 @@ class SensitiveHelper
      * @param string $sensitiveWord
      * @return $this
      */
-    public function setTree($sensitiveWords = '')
+    public function setTree()
     {
-        if (empty($sensitiveWords)) {
-            throw new \Exception('词库不能为空');
-        }
         $this->wordTree = new HashMap();
 
         //获取缓存文件,缓存文件有效时间1小时
@@ -56,7 +53,11 @@ class SensitiveHelper
             return $this;
         }
 
-        //构造索引树
+        //获取敏感词,构造索引树
+        $sensitiveWords = Sensitive::getSensitiveWord();
+        if (empty($sensitiveWords)) {
+            throw new \Exception('词库不能为空');
+        }
         foreach ($sensitiveWords as $word) {
             $this->setTreeNode($word, $this->wordTree->hashTable);
         }
