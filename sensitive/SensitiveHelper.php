@@ -25,7 +25,7 @@ class SensitiveHelper
      *
      * @var array|null
      */
-    protected static $badWordList = null;
+    public $badWordList;
 
     /**
      * @var null 缓存文件地址
@@ -108,12 +108,38 @@ class SensitiveHelper
      *
      * @param string   $content    待检测内容
      * @param int      $matchType  匹配类型【1获取首个敏感词】
+     * @param string   $replace 敏感词替换字符
      * @return array
      */
     public function getBadWord($content, $matchType = 1)
     {
+        //之前已经解析过了
+        if(!empty($this->badWordList[$content])){
+            return $this->badWordList[$content];
+        }
+
+        //之前没有解析过，先解析
+        $this->replace($content, $matchType);
+        return (array)$this->badWordList[$content];
+    }
+
+    /**
+     * 替换文字中的敏感词
+     *
+     * @param string   $content    待检测内容
+     * @param int      $matchType  匹配类型【1获取首个敏感词】
+     * @param string   $replace 敏感词替换字符
+     * @return array
+     */
+    public function replace($content, $matchType = 1, $replace = '')
+    {
+        $orginContent = $content;
+        if (empty($content)) {
+            throw new \Exception('请填写检测的内容');
+        }
+
+        $this->clean(); // 清空之前的记录
         $this->contentLength = mb_strlen($content, 'utf-8');
-        $badWordList = array();
         for ($length = 0; $length < $this->contentLength; $length++) {
             $matchFlag = 0;
             $flag = false;
@@ -141,43 +167,18 @@ class SensitiveHelper
             if ($matchFlag <= 0) {
                 continue;
             }
-            $badWordList[] = mb_substr($content, $length, $matchFlag, 'utf-8');
+
+            //记录敏感词
+            $this->badWordList[$orginContent][] = mb_substr($content, $length, $matchFlag, 'utf-8');
+            //替换敏感词
+            if(!empty($replace)){
+                $s = mb_substr($content, 0, $length, 'utf-8');
+                $e = mb_substr($content, $length + $matchFlag , null, 'utf-8');
+                $content = $s . $replace . $e;
+            }
             // 需匹配内容标志位往后移
             $length = $length + $matchFlag - 1;
-        }
-        return $badWordList;
-    }
 
-    /**
-     * 替换敏感字字符
-     *
-     * @param $wordMap
-     * @param $content
-     * @param $replaceChar
-     * @param string $sTag
-     * @param string $eTag
-     * @param int $matchType
-     * @return mixed
-     */
-    public function replace($content, $replaceChar = '', $sTag = '', $eTag = '', $matchType = 1)
-    {
-        if (empty($content)) {
-            throw new \Exception('请填写检测的内容');
-        }
-        if (empty(self::$badWordList)) {
-            $badWordList = $this->getBadWord($content, $matchType);
-        } else {
-            $badWordList = self::$badWordList;
-        }
-        // 未检测到敏感词，直接返回
-        if (empty($badWordList)) {
-            return $content;
-        }
-        foreach ($badWordList as $badWord) {
-            if ($sTag || $eTag) {
-                $replaceChar = $sTag . $badWord . $eTag;
-            }
-            $content = str_replace($badWord, $replaceChar, $content);
         }
         return $content;
     }
@@ -219,4 +220,11 @@ class SensitiveHelper
         return false;
     }
 
+    /**
+     * 清空所有属性
+     */
+    private function clean(){
+        $this->badWordList = array();
+        $this->contentLength = 0;
+    }
 }
