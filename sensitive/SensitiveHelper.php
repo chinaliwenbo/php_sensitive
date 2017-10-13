@@ -55,6 +55,9 @@ class SensitiveHelper
 
         //获取敏感词,构造索引树
         $sensitiveWords = Sensitive::getSensitiveWord();
+        usort($sensitiveWords, function($a, $b){
+            return strlen($a) < strlen($b);
+        });
         if (empty($sensitiveWords)) {
             throw new \Exception('词库不能为空');
         }
